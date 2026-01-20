@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTenant } from "@/lib/tenant-context";
+import { TestSimulator } from "@/components/TestSimulator";
 
 export default function AnalyticsPage() {
   const { tenant } = useTenant();
@@ -44,6 +45,7 @@ export default function AnalyticsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
         <select
+          aria-label="Time period"
           className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
           value={period}
           onChange={(e) => setPeriod(e.target.value)}
@@ -137,6 +139,8 @@ export default function AnalyticsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <TestSimulator />
     </div>
   );
 }

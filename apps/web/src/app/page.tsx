@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { CreditCard, DollarSign, Zap, TrendingUp, Building2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TestSimulator } from "@/components/TestSimulator";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -320,6 +321,8 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
+      <TestSimulator />
+
       {/* All Tenants Details */}
       <Card>
         <CardHeader>
@@ -369,15 +372,14 @@ export default function DashboardPage() {
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      <Button asChild variant="outline" size="sm">
-                        <a
-                          href={getTenantDashboardUrl(t.slug)}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Open dashboard
-                        </a>
-                      </Button>
+                      <a
+                        href={getTenantDashboardUrl(t.slug)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center justify-center h-8 rounded-md px-3 text-xs border border-input bg-background shadow hover:bg-accent hover:text-accent-foreground"
+                      >
+                        Open dashboard
+                      </a>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t">

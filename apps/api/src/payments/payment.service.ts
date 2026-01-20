@@ -4,6 +4,7 @@ import { PaymentRepository } from './repositories/payment.repository';
 import { CreatePaymentDto, UpdatePaymentDto, PaymentResponseDto, PaymentQueryDto } from './dto/payment.dto';
 import { Payment, PaymentStatus, Currency } from './schemas/payment.schema';
 import { TenantContextService } from '../tenants/tenant-context.service';
+import { UsageTrackerService } from '../usage/usage-tracker.service';
 
 /**
  * PaymentService
@@ -18,6 +19,7 @@ export class PaymentService {
   constructor(
     private readonly paymentRepository: PaymentRepository,
     private readonly tenantContext: TenantContextService,
+    private readonly usageTracker: UsageTrackerService,
   ) {}
 
   /**
@@ -31,6 +33,10 @@ export class PaymentService {
       reference,
       currency: createDto.currency || Currency.USD,
       status: PaymentStatus.PENDING,
+    });
+
+    this.usageTracker.trackTransaction().catch((err) => {
+      this.logger.warn(`Usage trackTransaction failed: ${err?.message || err}`);
     });
 
     this.logger.log(`Payment created: ${reference}`);

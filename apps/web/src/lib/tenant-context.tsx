@@ -42,6 +42,7 @@ interface TenantContextType {
   error: string | null;
   rateLimit: RateLimitInfo | null;
   reload: () => void;
+  refreshRateLimit: () => Promise<void>;
 }
 
 const TenantContext = createContext<TenantContextType>({
@@ -50,6 +51,7 @@ const TenantContext = createContext<TenantContextType>({
   error: null,
   rateLimit: null,
   reload: () => {},
+  refreshRateLimit: async () => {},
 });
 
 /**
@@ -158,13 +160,45 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshRateLimit = async () => {
+    const subdomain = getTenantFromSubdomain();
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (!subdomain && process.env.NODE_ENV === "development") {
+      headers["X-Tenant-ID"] = "bank1";
+    } else if (subdomain) {
+      headers["X-Tenant-ID"] = subdomain;
+    }
+    try {
+      const res = await fetch(`${apiUrl}/api/tenants/current`, {
+        headers,
+        mode: "cors",
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+      const limitHeader = res.headers.get("x-ratelimit-limit");
+      const remainingHeader = res.headers.get("x-ratelimit-remaining");
+      const resetHeader = res.headers.get("x-ratelimit-reset");
+      if (limitHeader != null && remainingHeader != null) {
+        setRateLimit({
+          limit: Number(limitHeader),
+          remaining: Number(remainingHeader),
+          resetAt: resetHeader ? Number(resetHeader) : undefined,
+        });
+      }
+    } catch {
+      // ignore; keep existing rate limit
+    }
+  };
+
   useEffect(() => {
     fetchTenant();
   }, []);
 
   return (
     <TenantContext.Provider
-      value={{ tenant, loading, error, rateLimit, reload: fetchTenant }}
+      value={{ tenant, loading, error, rateLimit, reload: fetchTenant, refreshRateLimit }}
     >
       {children}
     </TenantContext.Provider>

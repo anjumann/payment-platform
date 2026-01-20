@@ -10,6 +10,7 @@ import { Reflector } from '@nestjs/core';
 import { Response } from 'express';
 import { RateLimiterService } from '../rate-limiter.service';
 import { TenantContextService } from '../../tenants/tenant-context.service';
+import { UsageTrackerService } from '../../usage/usage-tracker.service';
 import { SKIP_RATE_LIMIT_KEY } from '../decorators/skip-rate-limit.decorator';
 
 /**
@@ -40,6 +41,7 @@ export class RateLimitGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly rateLimiter: RateLimiterService,
     private readonly tenantContext: TenantContextService,
+    private readonly usageTracker: UsageTrackerService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -59,10 +61,11 @@ export class RateLimitGuard implements CanActivate {
     }
 
     const response = context.switchToHttp().getResponse<Response>();
-    const request = context.switchToHttp().getRequest();
-    
-    // Use route path as endpoint identifier for granular limiting
-    const endpoint = request.route?.path || 'global';
+
+    // Single global bucket per tenant: 60/min applies to all API routes.
+    // (Per-endpoint buckets meant the dashboard's "API Rate Limit" from
+    // /api/tenants/current never reflected /api/usage/summary or /api/payments.)
+    const endpoint = 'global';
 
     // Check rate limit
     const result = await this.rateLimiter.checkAndConsume(endpoint);
@@ -89,6 +92,11 @@ export class RateLimitGuard implements CanActivate {
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
+
+    // Track API call for monthly usage (fire-and-forget; do not block on tracking errors)
+    this.usageTracker.trackApiCall().catch((err) => {
+      this.logger.warn(`Usage trackApiCall failed: ${err?.message || err}`);
+    });
 
     return true;
   }

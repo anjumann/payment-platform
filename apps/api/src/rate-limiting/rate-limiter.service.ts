@@ -95,8 +95,11 @@ export class RateLimiterService {
         retryAfter: allowed === 0 ? Math.ceil((resetAt - now) / 1000) : undefined,
       };
     } catch (error) {
-      this.logger.error(`Rate limit check failed: ${error.message}`);
-      // Fail open: allow request if Redis is down
+      this.logger.error(
+        `Rate limit check failed (failing open; limits NOT enforced): ${error.message}. ` +
+          `Ensure Redis is running at ${config.redis.host}:${config.redis.port}.`,
+      );
+      // Fail open: allow request if Redis is down (rate limits will not be enforced)
       return {
         allowed: true,
         limit,

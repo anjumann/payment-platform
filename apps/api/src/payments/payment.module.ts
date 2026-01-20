@@ -5,6 +5,7 @@ import { PaymentRepository } from './repositories/payment.repository';
 import { PaymentService } from './payment.service';
 import { PaymentController } from './payment.controller';
 import { TenantModule } from '../tenants/tenant.module';
+import { UsageModule } from '../usage/usage.module';
 
 /**
  * PaymentModule
@@ -20,6 +21,7 @@ import { TenantModule } from '../tenants/tenant.module';
   imports: [
     MongooseModule.forFeature([{ name: Payment.name, schema: PaymentSchema }]),
     TenantModule,
+    UsageModule,
   ],
   controllers: [PaymentController],
   providers: [PaymentRepository, PaymentService],

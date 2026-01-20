@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useTenant } from "@/lib/tenant-context";
+import { TestSimulator } from "@/components/TestSimulator";
 
 export default function SettingsPage() {
   const { tenant } = useTenant();
@@ -203,6 +204,8 @@ export default function SettingsPage() {
       <Button size="lg" onClick={handleSave}>
         Save Changes
       </Button>
+
+      <TestSimulator />
     </div>
   );
 }
