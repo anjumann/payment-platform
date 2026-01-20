@@ -27,6 +27,12 @@ export interface Tenant {
   };
 }
 
+export interface RateLimitInfo {
+  limit: number;
+  remaining: number;
+  resetAt?: number; // unix seconds (as sent by backend)
+}
+
 /**
  * Tenant Context
  */
@@ -34,6 +40,7 @@ interface TenantContextType {
   tenant: Tenant | null;
   loading: boolean;
   error: string | null;
+  rateLimit: RateLimitInfo | null;
   reload: () => void;
 }
 
@@ -41,6 +48,7 @@ const TenantContext = createContext<TenantContextType>({
   tenant: null,
   loading: true,
   error: null,
+  rateLimit: null,
   reload: () => {},
 });
 
@@ -68,6 +76,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [rateLimit, setRateLimit] = useState<RateLimitInfo | null>(null);
 
   const fetchTenant = async () => {
     setLoading(true);
@@ -114,6 +123,20 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         throw new Error(`Tenant not found: ${response.status} ${errorText}`);
       }
 
+      // Capture per-minute rate limit info (used by dashboard progress bar)
+      const limitHeader = response.headers.get("x-ratelimit-limit");
+      const remainingHeader = response.headers.get("x-ratelimit-remaining");
+      const resetHeader = response.headers.get("x-ratelimit-reset");
+      if (limitHeader && remainingHeader) {
+        setRateLimit({
+          limit: Number(limitHeader),
+          remaining: Number(remainingHeader),
+          resetAt: resetHeader ? Number(resetHeader) : undefined,
+        });
+      } else {
+        setRateLimit(null);
+      }
+
       const data = await response.json();
       // Backend serializes Infinity as null in JSON. Normalize to numbers for UI.
       const normalized: Tenant = {
@@ -129,6 +152,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
       setTenant(null);
+      setRateLimit(null);
     } finally {
       setLoading(false);
     }
@@ -140,7 +164,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
   return (
     <TenantContext.Provider
-      value={{ tenant, loading, error, reload: fetchTenant }}
+      value={{ tenant, loading, error, rateLimit, reload: fetchTenant }}
     >
       {children}
     </TenantContext.Provider>

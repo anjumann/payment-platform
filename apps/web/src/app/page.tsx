@@ -24,7 +24,7 @@ interface TenantDetails {
 }
 
 export default function DashboardPage() {
-  const { tenant, loading, error: tenantError } = useTenant();
+  const { tenant, loading, error: tenantError, rateLimit } = useTenant();
   const [allTenants, setAllTenants] = useState<TenantDetails[]>([]);
   const [tenantsLoading, setTenantsLoading] = useState(false);
   const [stats, setStats] = useState({
@@ -270,15 +270,32 @@ export default function DashboardPage() {
           </div>
           <div>
             <div className="flex justify-between text-sm mb-2">
-              <span>API Calls</span>
+              <span>API Rate Limit (current minute)</span>
               <span className="font-medium">
-                {stats.apiCalls.toLocaleString()}
+                {rateLimit
+                  ? `${(rateLimit.limit - rateLimit.remaining).toLocaleString()} / ${rateLimit.limit.toLocaleString()}`
+                  : "—"}
               </span>
             </div>
             <Progress
-              value={30}
+              value={
+                rateLimit && rateLimit.limit > 0
+                  ? Math.min(
+                      100,
+                      ((rateLimit.limit - rateLimit.remaining) / rateLimit.limit) *
+                        100
+                    )
+                  : 0
+              }
               className="bg-purple-100 [&>div]:bg-purple-500"
             />
+            <div className="flex justify-between text-xs text-muted-foreground mt-2">
+              <span>This month: {stats.apiCalls.toLocaleString()} calls</span>
+              <span>
+                Remaining this minute:{" "}
+                {rateLimit ? rateLimit.remaining.toLocaleString() : "—"}
+              </span>
+            </div>
           </div>
         </CardContent>
       </Card>
