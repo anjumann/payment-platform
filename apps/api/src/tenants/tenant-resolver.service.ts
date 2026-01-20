@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import Redis from 'ioredis';
 import { Request } from 'express';
 import { Tenant } from './schemas/tenant.schema';
@@ -206,7 +206,15 @@ export class TenantResolverService {
     return this.findWithCache(cacheKey, () =>
       this.tenantModel
         .findOne({
-          $or: [{ _id: idOrKey }, { apiKey: idOrKey }],
+          // Accept multiple identifiers:
+          // - Mongo _id (admin/internal) (only if ObjectId-valid to avoid CastError)
+          // - apiKey (pat_... key for API integrations)
+          // - slug (useful for local dev / subdomain-based UIs that pass X-Tenant-ID)
+          $or: [
+            ...(Types.ObjectId.isValid(idOrKey) ? [{ _id: idOrKey }] : []),
+            { apiKey: idOrKey },
+            { slug: idOrKey },
+          ],
           isActive: true,
         })
         .exec(),

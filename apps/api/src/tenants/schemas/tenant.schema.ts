@@ -147,6 +147,25 @@ export class Tenant extends Document {
 
 export const TenantSchema = SchemaFactory.createForClass(Tenant);
 
+// ---- Schema methods (ensure available on hydrated documents) ----
+// Note: Class methods are not reliably attached to Mongoose documents unless explicitly added.
+TenantSchema.methods.getEffectiveLimits = function (): TenantLimits {
+  const tierLimits = TIER_CONFIGS[this.tier].limits;
+  if (!this.customLimits) return tierLimits;
+  return {
+    ...tierLimits,
+    ...this.customLimits,
+  };
+};
+
+TenantSchema.methods.getFeatures = function (): TenantFeatures {
+  return TIER_CONFIGS[this.tier].features;
+};
+
+TenantSchema.methods.hasFeature = function (feature: keyof TenantFeatures): boolean {
+  return this.getFeatures()[feature];
+};
+
 // Add compound indexes for efficient lookups
 TenantSchema.index({ slug: 1, isActive: 1 });
 TenantSchema.index({ domains: 1 });

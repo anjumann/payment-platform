@@ -9,6 +9,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  NotFoundException,
 } from '@nestjs/common';
 import { TenantService } from './tenant.service';
 import { CreateTenantDto, UpdateTenantDto, TenantResponseDto } from './dto/tenant.dto';
@@ -38,7 +39,11 @@ export class TenantController {
    * This is the most common use case for tenants accessing their own info
    */
   @Get('current')
-  getCurrentTenant(@CurrentTenant() tenant: Tenant): TenantResponseDto {
+  getCurrentTenant(@CurrentTenant() tenant: Tenant | undefined): TenantResponseDto {
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found. Please provide a valid X-Tenant-ID header, subdomain, or JWT token.');
+    }
+    
     return {
       id: tenant._id.toString(),
       slug: tenant.slug,

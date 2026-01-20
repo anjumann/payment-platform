@@ -75,7 +75,8 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
     try {
       const subdomain = getTenantFromSubdomain();
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+      // Prefer same-origin (/api/*) so Next.js can proxy via rewrites (avoids browser blocking/CORS).
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -88,36 +89,46 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         headers["X-Tenant-ID"] = subdomain;
       }
 
+      console.log(`[TenantContext] Fetching tenant from: ${apiUrl}/api/tenants/current`);
+      console.log(`[TenantContext] Headers:`, headers);
+
       const response = await fetch(`${apiUrl}/api/tenants/current`, {
         headers,
+        mode: 'cors',
+        credentials: 'include',
+      }).catch((fetchError) => {
+        console.error('[TenantContext] Fetch error:', fetchError);
+        // Network error - likely CORS or connection issue
+        if (fetchError instanceof TypeError) {
+          throw new Error(
+            `Cannot connect to API at ${apiUrl}. ` +
+            `Check if the server is running and CORS is configured. ` +
+            `Error: ${fetchError.message}`
+          );
+        }
+        throw fetchError;
       });
 
       if (!response.ok) {
-        throw new Error("Tenant not found");
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`Tenant not found: ${response.status} ${errorText}`);
       }
 
       const data = await response.json();
-      setTenant(data);
+      // Backend serializes Infinity as null in JSON. Normalize to numbers for UI.
+      const normalized: Tenant = {
+        ...data,
+        limits: {
+          ...data.limits,
+          maxUsers: data?.limits?.maxUsers ?? Infinity,
+          maxTransactionsPerMonth: data?.limits?.maxTransactionsPerMonth ?? Infinity,
+          apiRateLimit: data?.limits?.apiRateLimit ?? 0,
+        },
+      };
+      setTenant(normalized);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
-      // Set demo tenant for development
-      if (process.env.NODE_ENV === "development") {
-        setTenant({
-          id: "demo",
-          slug: "demo",
-          name: "Demo Tenant",
-          tier: "professional",
-          settings: {
-            primaryColor: "#1976d2",
-            secondaryColor: "#dc004e",
-          },
-          limits: {
-            maxUsers: 100,
-            maxTransactionsPerMonth: 50000,
-            apiRateLimit: 300,
-          },
-        });
-      }
+      setTenant(null);
     } finally {
       setLoading(false);
     }
