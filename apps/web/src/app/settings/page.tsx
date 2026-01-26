@@ -205,7 +205,7 @@ export default function SettingsPage() {
         Save Changes
       </Button>
 
-      <TestSimulator />
+      {/* <TestSimulator /> */}
     </div>
   );
 }

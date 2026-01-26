@@ -175,7 +175,7 @@ export default function PaymentsPage() {
         </div>
       </Card>
 
-      <TestSimulator />
+      {/* <TestSimulator /> */}
 
       {/* Create Payment Dialog */}
       {dialogOpen && (

@@ -321,7 +321,7 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      <TestSimulator />
+      {/* <TestSimulator /> */}
 
       {/* All Tenants Details */}
       <Card>

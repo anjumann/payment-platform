@@ -140,7 +140,7 @@ export default function AnalyticsPage() {
         </CardContent>
       </Card>
 
-      <TestSimulator />
+      {/* <TestSimulator /> */}
     </div>
   );
 }
